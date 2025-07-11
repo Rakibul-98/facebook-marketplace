@@ -1,52 +1,105 @@
 "use client";
 
+import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
-import { getProductById } from "../components/Products";
 import Image from "next/image";
-import productImg from "../../../public/product.jpg";
 import Header from "../components/Header";
-import { useState } from "react";
+import { supabase } from "../../../lib/supabaseClient";
+import { toast } from "sonner";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  location: string;
+  category: string;
+  email: string;
+  description?: string;
+  image_url?: string;
+}
+
 export default function ProductDetailPage({ params }: Props) {
-  const product = getProductById(Number(params.id));
+  const { id } = use(params);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
 
-  if (!product) return notFound();
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const { data, error } = await supabase
+        .from("listings")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-  const handleSubmit = (e: React.FormEvent) => {
+      if (error) {
+        console.error("Error fetching product:", error.message);
+      } else {
+        setProduct(data);
+      }
+
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("Submitted Message:", {
-      email,
-      message,
-      productId: product.id,
-      productDetails: product, // ✅ Log full product object
-    });
+    const { error } = await supabase.from("messages").insert([
+      {
+        product_id: product?.id,
+        email,
+        message,
+      },
+    ]);
 
-    setSent(true);
+    if (error) {
+      console.error("Error sending message:", error.message);
+      toast.error("Failed to send message.");
+    } else {
+      toast.success("Message sent to the seller!");
+      setSent(true);
+      setEmail("");
+      setMessage("");
+    }
   };
+
+  if (loading) {
+    return <p className="p-10 text-gray-600">Loading...</p>;
+  }
+
+  if (!product) return notFound();
 
   return (
     <div className="h-screen">
       <Header />
       <div className="p-4 flex flex-col md:flex-row gap-5">
-        {/* Product Image */}
         <div className="flex-1">
-          <Image
-            src={productImg}
-            alt="dummy product"
-            className="w-full h-[60vh] lg:h-[85vh] object-cover"
-          />
+          <div className="relative w-full h-[60vh] lg:h-[85vh] rounded overflow-hidden bg-gray-200">
+            {product.image_url ? (
+              <Image
+                src={product.image_url}
+                alt={product.title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No Image
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Details */}
         <div className="w-full md:w-96 space-y-4 pb-5">
           <div>
             <h1 className="text-xl font-bold">{product.title}</h1>
@@ -63,11 +116,19 @@ export default function ProductDetailPage({ params }: Props) {
             <p>
               <span className="font-semibold">Seller Information</span>
               <br />
-              Wei Gu
+              {product.email}
             </p>
           </div>
+
+          {product.description && (
+            <div>
+              <h3 className="font-semibold">Description</h3>
+              <p className="text-sm text-gray-700">{product.description}</p>
+            </div>
+          )}
+
           <h3 className="text-xl font-semibold">Message Seller</h3>
-          {/* Message Form or Confirmation */}
+
           {!sent ? (
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
@@ -100,7 +161,7 @@ export default function ProductDetailPage({ params }: Props) {
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="I want to buy your bike!"
+                  placeholder="I want to buy your product!"
                   className="w-full border rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>

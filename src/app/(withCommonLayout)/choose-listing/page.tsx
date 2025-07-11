@@ -13,24 +13,21 @@ export default function page() {
   ];
 
   return (
-    <div className="flex mx-auto">
+    <div className="flex items-start">
       <SideMenu selected="" onSelect={() => {}} />
-      <div className="flex-1 px-4 py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+
+      <div className="flex-1 px-4 py-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {items.map((item, i) => (
-          <div
+          <Link
             key={i}
-            className="flex flex-col items-center border rounded-md p-2 shadow-sm hover:shadow-md transition cursor-pointer h-fit"
+            href="/add-product"
+            className="flex flex-col items-center rounded-md p-4 shadow-sm hover:shadow-md transition cursor-pointer h-full bg-white"
           >
-            <Link
-              href="/add-product"
-              className="w-full h-full flex flex-col items-center"
-            >
-              <div className="flex justify-center items-center h-20 w-20 bg-blue-100 rounded-full mb-2">
-                <div className="flex justify-center items-center h-12 w-12 bg-blue-200 rounded-full"></div>
-              </div>
-              <div className="text-sm">{item}</div>
-            </Link>
-          </div>
+            <div className="flex justify-center items-center h-20 w-20 bg-blue-100 rounded-full mb-2">
+              <div className="flex justify-center items-center h-12 w-12 bg-blue-200 rounded-full" />
+            </div>
+            <div className="text-sm text-center">{item}</div>
+          </Link>
         ))}
       </div>
     </div>

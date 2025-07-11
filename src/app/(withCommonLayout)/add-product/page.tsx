@@ -49,8 +49,6 @@ export default function CreateListing() {
   });
 
   const [uploading, setUploading] = useState(false);
-  // const [errorMsg, setErrorMsg] = useState("");
-  // const [successMsg, setSuccessMsg] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -85,7 +83,6 @@ export default function CreateListing() {
     setUploading(true);
 
     try {
-      // 1. Upload image to Supabase storage
       const fileExt = form.image!.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `public/${fileName}`;
@@ -99,14 +96,12 @@ export default function CreateListing() {
 
       if (uploadError) throw uploadError;
 
-      // 2. Get public URL of uploaded image
       const { data: publicUrlData } = supabase.storage
         .from("listing-images")
         .getPublicUrl(filePath);
 
       const imagePublicUrl = publicUrlData.publicUrl;
 
-      // 3. Insert listing into DB
       const { error: insertError } = await supabase.from("listings").insert([
         {
           title: form.title,
@@ -140,15 +135,13 @@ export default function CreateListing() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mx-5 p-6 ">
-      {/* Form Section */}
       <form onSubmit={handleSubmit}>
         <h3 className="text-2xl font-semibold mb-3">Add Listing Details</h3>
 
-        {/* Image Upload */}
         <div className="mb-3">
           <label
             htmlFor="imageUpload"
-            className="flex items-center justify-center relative w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition"
+            className="flex items-center justify-center relative w-full h-60 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition"
           >
             {imageUrl ? (
               <Image
@@ -156,7 +149,6 @@ export default function CreateListing() {
                 alt="Preview"
                 fill
                 className="object-cover w-full h-full rounded-lg"
-                unoptimized // for local blob URLs
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-400">
@@ -175,14 +167,13 @@ export default function CreateListing() {
           </label>
         </div>
 
-        {/* Other inputs */}
         <div className="mb-3">
           <label className="block font-semibold">Title *</label>
           <input
             name="title"
             value={form.title}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border border-gray-300 px-2 py-1 rounded"
           />
         </div>
 
@@ -192,7 +183,7 @@ export default function CreateListing() {
             name="category"
             value={form.category}
             onChange={handleChange}
-            className="w-1/2 border border-gray-300 p-2 rounded"
+            className="w-1/2 border border-gray-300 px-2 py-1 rounded"
           >
             {categories.map((cat) => (
               <option key={cat} value={cat}>
@@ -209,7 +200,7 @@ export default function CreateListing() {
             type="number"
             value={form.price}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border border-gray-300 px-2 py-1 rounded"
           />
         </div>
 
@@ -219,7 +210,7 @@ export default function CreateListing() {
             name="location"
             value={form.location}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border border-gray-300 px-2 py-1 rounded"
           />
         </div>
 
@@ -230,7 +221,7 @@ export default function CreateListing() {
             type="email"
             value={form.email}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border border-gray-300 px-2 py-1 rounded"
           />
         </div>
 
@@ -240,7 +231,7 @@ export default function CreateListing() {
             name="description"
             value={form.description}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border border-gray-300 px-2 py-1 rounded"
           />
         </div>
 
@@ -257,12 +248,8 @@ export default function CreateListing() {
         >
           {uploading ? "Uploading..." : "Create Listing"}
         </button>
-
-        {/* {errorMsg && <p className="text-red-500 mt-2">{errorMsg}</p>} */}
-        {/* {successMsg && <p className="text-green-600 mt-2">{successMsg}</p>} */}
       </form>
 
-      {/* Preview Section */}
       <div className="border border-gray-300 rounded p-4 self-start">
         <div className="relative w-full h-96 mb-3 rounded overflow-hidden ">
           <Image
@@ -270,7 +257,6 @@ export default function CreateListing() {
             alt="Preview"
             fill
             className="object-cover rounded bg-gray-100 "
-            unoptimized // only for local blob URLs
           />
         </div>
         <h2 className="text-xl font-bold">{form.title || "Bike for sale"}</h2>
