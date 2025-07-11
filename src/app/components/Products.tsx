@@ -92,7 +92,7 @@ export default function ProductGrid({ category }: { category: string }) {
       {filteredProducts.length === 0 ? (
         <p className="text-gray-500">No products found.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredProducts.map((product) => (
             <Link key={product.id} href={`/${product.id}`}>
               <div className="border rounded-md p-2 shadow-sm hover:shadow-md transition cursor-pointer">

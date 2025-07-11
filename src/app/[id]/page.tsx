@@ -1,3 +1,5 @@
+"use client";
+
 import { notFound } from "next/navigation";
 import { getProductById } from "../components/Products";
 import Image from "next/image";
