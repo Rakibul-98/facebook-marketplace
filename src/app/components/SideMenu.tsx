@@ -1,5 +1,10 @@
 "use client";
 
+interface SideMenuProps {
+  selected: string;
+  onSelect: (category: string) => void;
+}
+
 const categories = [
   "Vehicles",
   "Property Rentals",
@@ -22,7 +27,7 @@ const categories = [
   "Buy and sell groups",
 ];
 
-export default function SideMenu() {
+export default function SideMenu({ selected, onSelect }: SideMenuProps) {
   return (
     <aside className="px-4 py-6">
       <h2 className="text-xl font-bold mb-4">Categories</h2>
@@ -30,8 +35,9 @@ export default function SideMenu() {
         {categories.map((cat) => (
           <li
             key={cat}
+            onClick={() => onSelect(cat)}
             className={`cursor-pointer px-2 py-1 rounded hover:bg-blue-100 ${
-              cat === "Electronics"
+              selected === cat
                 ? "bg-blue-100 border-l-4 border-blue-600 font-semibold"
                 : ""
             }`}
