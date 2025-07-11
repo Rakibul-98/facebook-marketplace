@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
 import Image from "next/image";
 import { FaCloudUploadAlt } from "react-icons/fa";
+import { supabase } from "../../../../lib/supabaseClient";
+import { toast } from "sonner";
 
 const categories = [
   "Vehicles",
@@ -45,6 +48,10 @@ export default function CreateListing() {
     image: null,
   });
 
+  const [uploading, setUploading] = useState(false);
+  // const [errorMsg, setErrorMsg] = useState("");
+  // const [successMsg, setSuccessMsg] = useState("");
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -61,24 +68,84 @@ export default function CreateListing() {
 
   const imageUrl = form.image ? URL.createObjectURL(form.image) : null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Submitted Form:", form);
-  };
-
   const isFormValid =
     form.title.trim() !== "" &&
     form.price.trim() !== "" &&
     form.email.trim() !== "" &&
     form.image !== null;
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!isFormValid) {
+      toast.error("Please fill all required fields and select an image.");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // 1. Upload image to Supabase storage
+      const fileExt = form.image!.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("listing-images")
+        .upload(filePath, form.image!, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Get public URL of uploaded image
+      const { data: publicUrlData } = supabase.storage
+        .from("listing-images")
+        .getPublicUrl(filePath);
+
+      const imagePublicUrl = publicUrlData.publicUrl;
+
+      // 3. Insert listing into DB
+      const { error: insertError } = await supabase.from("listings").insert([
+        {
+          title: form.title,
+          category: form.category,
+          price: Number(form.price),
+          location: form.location,
+          email: form.email,
+          description: form.description,
+          image_url: imagePublicUrl,
+        },
+      ]);
+
+      if (insertError) throw insertError;
+
+      toast.success("Listing created successfully!");
+      setForm({
+        title: "",
+        category: categories[0],
+        price: "",
+        location: "",
+        email: "",
+        description: "",
+        image: null,
+      });
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mx-5 p-6 ">
       {/* Form Section */}
       <form onSubmit={handleSubmit}>
         <h3 className="text-2xl font-semibold mb-3">Add Listing Details</h3>
+
+        {/* Image Upload */}
         <div className="mb-3">
-          {/* Custom Upload Box */}
           <label
             htmlFor="imageUpload"
             className="flex items-center justify-center relative w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition"
@@ -89,6 +156,7 @@ export default function CreateListing() {
                 alt="Preview"
                 fill
                 className="object-cover w-full h-full rounded-lg"
+                unoptimized // for local blob URLs
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-400">
@@ -97,7 +165,6 @@ export default function CreateListing() {
               </div>
             )}
 
-            {/* Hidden input */}
             <input
               id="imageUpload"
               type="file"
@@ -107,6 +174,8 @@ export default function CreateListing() {
             />
           </label>
         </div>
+
+        {/* Other inputs */}
         <div className="mb-3">
           <label className="block font-semibold">Title *</label>
           <input
@@ -116,6 +185,7 @@ export default function CreateListing() {
             className="w-full border border-gray-300 p-2 rounded"
           />
         </div>
+
         <div className="mb-3">
           <label className="block font-semibold">Category *</label>
           <select
@@ -131,6 +201,7 @@ export default function CreateListing() {
             ))}
           </select>
         </div>
+
         <div className="mb-3">
           <label className="block font-semibold">Price *</label>
           <input
@@ -141,6 +212,7 @@ export default function CreateListing() {
             className="w-full border border-gray-300 p-2 rounded"
           />
         </div>
+
         <div className="mb-3">
           <label className="block font-semibold">Location</label>
           <input
@@ -150,15 +222,18 @@ export default function CreateListing() {
             className="w-full border border-gray-300 p-2 rounded"
           />
         </div>
+
         <div className="mb-3">
           <label className="block font-semibold">Contact Email *</label>
           <input
             name="email"
+            type="email"
             value={form.email}
             onChange={handleChange}
             className="w-full border border-gray-300 p-2 rounded"
           />
         </div>
+
         <div className="mb-3">
           <label className="block font-semibold">Description</label>
           <textarea
@@ -168,19 +243,23 @@ export default function CreateListing() {
             className="w-full border border-gray-300 p-2 rounded"
           />
         </div>
+
         <button
-          disabled={!isFormValid}
+          disabled={!isFormValid || uploading}
           type="submit"
           className={`w-full px-4 py-2 rounded transition
-    ${
-      isFormValid
-        ? "bg-blue-600 text-white hover:bg-blue-700"
-        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-    }
-  `}
+            ${
+              isFormValid && !uploading
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }
+          `}
         >
-          Create Listing
+          {uploading ? "Uploading..." : "Create Listing"}
         </button>
+
+        {/* {errorMsg && <p className="text-red-500 mt-2">{errorMsg}</p>} */}
+        {/* {successMsg && <p className="text-green-600 mt-2">{successMsg}</p>} */}
       </form>
 
       {/* Preview Section */}
@@ -191,7 +270,7 @@ export default function CreateListing() {
             alt="Preview"
             fill
             className="object-cover rounded bg-gray-100 "
-            unoptimized // only needed for local previews
+            unoptimized // only for local blob URLs
           />
         </div>
         <h2 className="text-xl font-bold">{form.title || "Bike for sale"}</h2>
